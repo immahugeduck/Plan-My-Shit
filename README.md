@@ -2,7 +2,8 @@
 
 A clean, beautiful, no-time-block digital planner that saves everything in your browser.
 
-Live version → https://yourusername.github.io/my-2025-2027-planner/
+Live version → 
+https://github.com/immahugeduck/Plan-My-Shit.git
 
 ![screenshot](assets/screenshot.png)  ← (add one later)
 

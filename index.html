@@ -1,0 +1,241 @@
+# import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Calendar, Layout, Save, RotateCcw, CheckCircle2 } from 'lucide-react';
+
+const TOTAL_WEEKS = 52;
+const MONTHS = [
+"January", "February", "March", "April", "May", "June",
+"July", "August", "September", "October", "November", "December"
+];
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+// Helper to generate calendar days for a specific year (using 2025 as default base year for structure)
+const getDaysInMonth = (monthIndex, year = 2025) => {
+const date = new Date(year, monthIndex, 1);
+const days = [];
+
+// Pad empty days at start
+const startDay = date.getDay(); // 0 is Sunday
+const offset = startDay === 0 ? 6 : startDay - 1; // Make Monday start (0)
+
+for (let i = 0; i < offset; i++) {
+days.push(null);
+}
+
+// Fill days
+const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+for (let i = 1; i <= daysInMonth; i++) {
+days.push(i);
+}
+
+return days;
+};
+
+export default function PlannerApp() {
+const [view, setView] = useState('weekly'); // 'weekly' or 'monthly'
+const [currentWeek, setCurrentWeek] = useState(1);
+const [currentMonth, setCurrentMonth] = useState(0);
+
+// Data State
+// Structure: { "w1-d0-s0": "task", "w1-goals": "text", "m0-d1": "reminder" }
+const [plannerData, setPlannerData] = useState({});
+const [isLoaded, setIsLoaded] = useState(false);
+
+// Load from LocalStorage on mount
+useEffect(() => {
+const saved = localStorage.getItem('interactive-planner-data');
+if (saved) {
+try {
+setPlannerData(JSON.parse(saved));
+} catch (e) {
+console.error("Failed to parse saved data");
+}
+}
+setIsLoaded(true);
+}, []);
+
+// Save to LocalStorage on change
+useEffect(() => {
+if (isLoaded) {
+localStorage.setItem('interactive-planner-data', JSON.stringify(plannerData));
+}
+}, [plannerData, isLoaded]);
+
+const handleInputChange = (key, value) => {
+setPlannerData(prev => ({
+...prev,
+[key]: value
+}));
+};
+
+const clearAllData = () => {
+if (confirm("Are you sure you want to clear all planner data? This cannot be undone.")) {
+setPlannerData({});
+localStorage.removeItem('interactive-planner-data');
+}
+};
+
+// --- Navigation ---
+
+const nextWeek = () => setCurrentWeek(p => p >= TOTAL_WEEKS ? 1 : p + 1);
+const prevWeek = () => setCurrentWeek(p => p <= 1 ? TOTAL_WEEKS : p - 1);
+
+const nextMonth = () => setCurrentMonth(p => p >= 11 ? 0 : p + 1);
+const prevMonth = () => setCurrentMonth(p => p <= 0 ? 11 : p - 1);
+
+// --- Renderers ---
+
+const renderWeeklyView = () => (
+<div className="animate-fade-in">
+<div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+<button onClick={prevWeek} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+<ChevronLeft className="w-6 h-6 text-slate-600" />
+</button>
+<div className="text-center">
+<h2 className="text-2xl font-bold text-slate-800">Week {currentWeek}</h2>
+<p className="text-slate-500 text-sm">Weekly Scheduler</p>
+</div>
+<button onClick={nextWeek} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+<ChevronRight className="w-6 h-6 text-slate-600" />
+</button>
+</div>
+
+);
+
+const renderMonthlyView = () => {
+const days = getDaysInMonth(currentMonth);
+
+```
+return (
+  <div className="animate-fade-in">
+    <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+      <button onClick={prevMonth} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <ChevronLeft className="w-6 h-6 text-slate-600" />
+      </button>
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-slate-800">{MONTHS[currentMonth]}</h2>
+        <p className="text-slate-500 text-sm">Monthly Overview</p>
+      </div>
+      <button onClick={nextMonth} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <ChevronRight className="w-6 h-6 text-slate-600" />
+      </button>
+    </div>
+
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      {/* Header Row */}
+      <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+        {DAYS_OF_WEEK.map(d => (
+          <div key={d} className="py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <span className="hidden md:inline">{d}</span>
+            <span className="md:hidden">{d.substring(0, 3)}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 auto-rows-fr bg-slate-200 gap-px border-b border-slate-200">
+        {days.map((day, idx) => {
+          if (!day) return <div key={`empty-${idx}`} className="bg-white min-h-[120px]" />;
+
+          const dateKey = `m${currentMonth}-d${day}`;
+
+          return (
+            <div key={`day-${day}`} className="bg-white min-h-[120px] p-2 flex flex-col hover:bg-blue-50/30 transition-colors">
+              <span className={`text-sm font-semibold mb-1 ${new Date().getDate() === day && currentMonth === new Date().getMonth() ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-slate-700'}`}>
+                {day}
+              </span>
+              <textarea
+                value={plannerData[dateKey] || ''}
+                onChange={(e) => handleInputChange(dateKey, e.target.value)}
+                placeholder="..."
+                className="flex-grow w-full resize-none text-xs md:text-sm bg-transparent outline-none text-slate-600 placeholder-slate-200 mt-1"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100 text-yellow-800 text-sm">
+      <span className="font-bold">Tip:</span> Use the monthly view for birthdays, deadlines, and broad reminders. Switch to Weekly view for daily task lists.
+    </div>
+  </div>
+);
+
+```
+
+};
+
+return (
+<div className="min-h-screen bg-slate-100 font-sans text-slate-900 pb-20">
+{/* Top Navigation Bar */}
+<nav className="bg-slate-900 text-white sticky top-0 z-10 shadow-md">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div className="flex items-center justify-between h-16">
+<div className="flex items-center gap-3">
+<div className="bg-blue-500 p-1.5 rounded-lg">
+<Layout className="w-5 h-5 text-white" />
+</div>
+<h1 className="font-bold text-xl tracking-tight">LifePlanner</h1>
+</div>
+
+```
+        <div className="flex gap-2 bg-slate-800 p-1 rounded-lg">
+          <button
+            onClick={() => setView('weekly')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              view === 'weekly'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Layout className="w-4 h-4" />
+              <span className="hidden sm:inline">Weekly</span>
+            </span>
+          </button>
+          <button
+            onClick={() => setView('monthly')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              view === 'monthly'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Monthly</span>
+            </span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+           <button
+            onClick={clearAllData}
+            className="p-2 text-slate-400 hover:text-red-400 transition-colors"
+            title="Reset Data"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  {/* Main Content Area */}
+  <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {view === 'weekly' ? renderWeeklyView() : renderMonthlyView()}
+  </main>
+
+  {/* Footer Status */}
+  <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 text-center text-xs text-slate-400">
+     <span className="flex items-center justify-center gap-2">
+        <Save className="w-3 h-3" />
+        Auto-saving to browser storage
+     </span>
+  </footer>
+</div>
+
+```
+
+);
+}
